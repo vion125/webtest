@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="課堂練習：基於 Flask 的雙功能全棧網頁應用，包含早上看股與下午公司任務看板系統。">
+    <title>{% block title %}雲端網頁應用練習 - 雙效儀表板{% endblock %}</title>
+    <!-- 引入高品質字型 (Outfit 與 Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome 圖標庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 自訂精美樣式表 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- 背景流光特效元件 -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- 主導覽列 -->
+    <nav class="glass-nav" id="main-navigation">
+        <div class="nav-container">
+            <a href="/" class="nav-logo" id="nav-home-link">
+                <i class="fa-solid fa-cloud-sun-rain logo-icon"></i>
+                <span class="logo-text">AWS Flask Web</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}" id="nav-dashboard">
+                    <i class="fa-solid fa-house"></i> 首頁
+                </a>
+                <a href="/feature1" class="nav-item {% if request.path == '/feature1' %}active{% endif %}" id="nav-feature1">
+                    <i class="fa-solid fa-chart-line-up"></i> Feature 1 (早上看股)
+                </a>
+                <a href="/feature2" class="nav-item {% if request.path == '/feature2' %}active{% endif %}" id="nav-feature2">
+                    <i class="fa-solid fa-briefcase"></i> Feature 2 (下午上班的公司)
+                </a>
+            </div>
+            <div class="nav-time-widget" id="time-widget">
+                <i class="fa-solid fa-clock-three"></i>
+                <span id="current-live-time">--:--:--</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容區塊 -->
+    <main class="main-content">
+        {% block content %}
+        <div class="hero-container" id="home-hero-section">
+            <header class="hero-header">
+                <span class="badge">AWS 雲端網頁開發課程練習</span>
+                <h1 class="hero-title" id="main-title">高效日誌式雙效能儀表板</h1>
+                <p class="hero-subtitle">整合早晨理財看股與午後職場工作看板，為您的一天注入極致生產力與流暢體驗。</p>
+            </header>
+
+            <div class="portal-grid">
+                <!-- Portal 1: 早上看股 -->
+                <div class="portal-card feature1-card" id="card-feature1">
+                    <div class="portal-card-glow"></div>
+                    <div class="portal-icon">
+                        <i class="fa-solid fa-chart-mixed-up-circle-dollar"></i>
+                    </div>
+                    <span class="portal-time-badge morning-badge"><i class="fa-solid fa-sun-rising"></i> AM 09:00 - 13:30</span>
+                    <h2 class="portal-heading">Feature 1: 早上看股</h2>
+                    <p class="portal-desc">即時追蹤台股熱門標的！包含台積電、聯發科及 AI 伺服器概念股之即時行情、走勢折線圖與個人化觀察清單，助您在開盤黃金時段迅速掌握市場動向。</p>
+                    <a href="/feature1" class="portal-btn btn-morning">
+                        <span>開啟看股儀表板</span> <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Portal 2: 下午上班的公司 -->
+                <div class="portal-card feature2-card" id="card-feature2">
+                    <div class="portal-card-glow"></div>
+                    <div class="portal-icon">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </div>
+                    <span class="portal-time-badge afternoon-badge"><i class="fa-solid fa-sunset"></i> PM 13:30 - 18:00</span>
+                    <h2 class="portal-heading">Feature 2: 下午上班的公司</h2>
+                    <p class="portal-desc">專注午後職場高效生產力！提供視覺化任務 Kanban 看板，可拖曳更新狀態，並整合番茄鐘工時計算器與工作日誌，讓下午的工作排程有條不紊。</p>
+                    <a href="/feature2" class="portal-btn btn-afternoon">
+                        <span>進入辦公模式</span> <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 開發環境資訊 -->
+            <footer class="portal-footer">
+                <div class="footer-info">
+                    <span class="footer-tag"><i class="fa-solid fa-network-wired"></i> 連接埠: <strong>19191</strong></span>
+                    <span class="footer-tag"><i class="fa-solid fa-folder-tree"></i> 架構: <strong>src/ 和 test/ 切分</strong></span>
+                    <span class="footer-tag"><i class="fa-solid fa-shield-halved"></i> 測試架構: <strong>PyTest 驗證</strong></span>
+                </div>
+            </footer>
+        </div>
+        {% endblock %}
+    </main>
+
+    <!-- 頁面載入/共享 JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

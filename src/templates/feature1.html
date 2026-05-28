@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Feature 1: 早上看股 - AWS Flask 課程練習{% endblock %}
+
+{% block content %}
+<div class="feature-layout" id="morning-stock-layout">
+    <!-- 左側大盤與股票細節 -->
+    <div class="dashboard-panel" id="stock-main-panel">
+        <header class="panel-header">
+            <h2 class="panel-title">
+                <i class="fa-solid fa-chart-line-up morning-color"></i>
+                早上看股模擬大盤 (AM 09:00 - 13:30)
+            </h2>
+            <span class="portal-time-badge morning-badge">
+                <i class="fa-solid fa-circle-check"></i> 即時模擬大盤
+            </span>
+        </header>
+
+        <!-- 股票快速切換卡片網格 -->
+        <div class="stock-grid" id="stock-cards-grid">
+            <!-- 股票卡片將由 JS 動態生成與更新 -->
+            <div style="text-align: center; color: var(--text-muted); padding: 2rem; grid-column: 1 / -1;">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> 載入模擬股價中...
+            </div>
+        </div>
+
+        <!-- 選中股票的詳細走勢圖面板 -->
+        <div class="chart-container" id="selected-stock-detail-panel">
+            <div class="chart-header">
+                <div>
+                    <span class="stock-code-badge" id="detail-stock-code">--</span>
+                    <h3 id="detail-stock-name" style="font-size: 1.2rem; font-weight: 700; margin-top: 0.3rem;">載入中...</h3>
+                </div>
+                <div style="text-align: right;">
+                    <div class="stock-price" id="detail-stock-price" style="font-size: 1.8rem; line-height: 1.1;">--</div>
+                    <div id="detail-stock-change" class="stock-change">--</div>
+                </div>
+            </div>
+
+            <!-- HTML5 走勢繪圖畫布 -->
+            <div class="chart-canvas-wrapper">
+                <canvas id="stock-trend-canvas"></canvas>
+            </div>
+
+            <!-- 股價輔助數據 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; border-top: 1px solid var(--card-border); padding-top: 1rem;">
+                <div class="chart-info">
+                    <span>今日最高: <strong class="up-trend" id="detail-stock-high">--</strong></span>
+                    <span>今日最低: <strong class="down-trend" id="detail-stock-low">--</strong></span>
+                    <span>交易市場: <strong>台灣證券交易所 (TWSE)</strong></span>
+                </div>
+                
+                <button class="btn-watchlist-toggle" id="btn-toggle-watchlist">
+                    <i class="fa-regular fa-star"></i> 加入觀察清單
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側搜尋與自訂關注清單 -->
+    <div class="sidebar-panel" id="stock-sidebar-panel">
+        <!-- 搜尋工具 -->
+        <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="stock-search" class="search-input" placeholder="輸入股號 (如 2330) 或公司名稱...">
+        </div>
+
+        <!-- 關注清單卡片 -->
+        <div class="watchlist-card">
+            <h3 class="watchlist-title">
+                <span><i class="fa-solid fa-star" style="color: var(--morning-primary); margin-right: 0.5rem;"></i>我的觀察清單</span>
+                <span class="stock-code-badge" style="font-size: 0.75rem; background: rgba(255,159,67,0.1); color: var(--morning-primary);">關注中</span>
+            </h3>
+            <div class="watchlist-list" id="watchlist-items">
+                <!-- 關注項目將由 JS 渲染 -->
+            </div>
+        </div>
+
+        <!-- 理財晨間小叮嚀 -->
+        <div class="watchlist-card" style="background: linear-gradient(135deg, rgba(255, 159, 67, 0.05), rgba(255,255,255,0.02));">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--morning-primary);">
+                <i class="fa-solid fa-lightbulb"></i> 晨間理財指南
+            </h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+                台股交易時間為星期一至星期五的早上 9:00 至下午 1:30。在開盤黃金半小時內，市場波動通常最為劇烈，投資人應保持冷靜，避免追高殺低。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 針對加入觀察清單按鈕的特殊行內樣式，確保玻璃按鈕體驗 -->
+<style>
+.btn-watchlist-toggle {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+    padding: 0.5rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition-smooth);
+}
+
+.btn-watchlist-toggle:hover {
+    background: rgba(255, 159, 67, 0.1);
+    color: var(--morning-primary);
+    border-color: var(--morning-primary);
+}
+
+.btn-watchlist-toggle.watched {
+    background: rgba(255, 159, 67, 0.2);
+    color: var(--morning-primary);
+    border-color: var(--morning-primary);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Feature 2: 下午上班的公司 - AWS Flask 課程練習{% endblock %}
+
+{% block content %}
+<div class="company-layout" id="afternoon-workspace-layout">
+    <!-- 左側任務看板看板區 -->
+    <div class="dashboard-panel" id="kanban-main-panel">
+        <header class="panel-header">
+            <h2 class="panel-title">
+                <i class="fa-solid fa-briefcase afternoon-color"></i>
+                下午上班任務看板 (PM 13:30 - 18:00)
+            </h2>
+            <button class="btn-add-task" id="btn-show-task-form" style="margin-bottom: 0; width: auto; padding: 0.5rem 1.2rem;">
+                <i class="fa-solid fa-plus"></i> 新增任務
+            </button>
+        </header>
+
+        <!-- 看板架構 -->
+        <div class="kanban-board">
+            <!-- 待辦事項 (To Do) -->
+            <div class="kanban-column" id="column-todo-container">
+                <div class="column-header">
+                    <span class="column-title"><i class="fa-regular fa-circle-play" style="color: var(--text-muted);"></i> 準備中</span>
+                    <span class="column-count" id="count-todo">0</span>
+                </div>
+                <div class="column-cards" id="col-todo">
+                    <!-- 任務卡片將由 JS 渲染 -->
+                </div>
+            </div>
+
+            <!-- 進行中 (Doing) -->
+            <div class="kanban-column" id="column-doing-container" style="background: rgba(130, 87, 229, 0.03);">
+                <div class="column-header">
+                    <span class="column-title"><i class="fa-solid fa-spinner fa-spin-pulse" style="color: var(--afternoon-primary);"></i> 進行中</span>
+                    <span class="column-count" id="count-doing">0</span>
+                </div>
+                <div class="column-cards" id="col-doing">
+                    <!-- 任務卡片將由 JS 渲染 -->
+                </div>
+            </div>
+
+            <!-- 已完成 (Done) -->
+            <div class="kanban-column" id="column-done-container">
+                <div class="column-header">
+                    <span class="column-title"><i class="fa-solid fa-circle-check" style="color: #2ecc71;"></i> 已結案</span>
+                    <span class="column-count" id="count-done">0</span>
+                </div>
+                <div class="column-cards" id="col-done">
+                    <!-- 任務卡片將由 JS 渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側上班計時器與日誌 -->
+    <div class="office-tracker" id="tracker-sidebar-panel">
+        <!-- 番茄鐘工時計算器 -->
+        <div class="tracker-card">
+            <h3 class="tracker-title">
+                <i class="fa-solid fa-stopwatch" style="color: var(--afternoon-primary);"></i>
+                工作工時追蹤
+            </h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">追蹤您下午的工作時間，養成番茄鐘專注習慣。</p>
+            
+            <div class="timer-display" id="work-timer-display">00:00:00</div>
+            
+            <div class="timer-controls">
+                <button class="btn-timer btn-timer-start" id="btn-timer-start">
+                    <i class="fa-solid fa-play"></i> 開始計時
+                </button>
+                <button class="btn-timer btn-timer-pause" id="btn-timer-pause" disabled>
+                    <i class="fa-solid fa-pause"></i> 暫停
+                </button>
+            </div>
+        </div>
+
+        <!-- 辦公室生產力心法 -->
+        <div class="tracker-card" style="background: linear-gradient(135deg, rgba(130, 87, 229, 0.05), rgba(255,255,255,0.02));">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--afternoon-primary);">
+                <i class="fa-solid fa-bolt"></i> 下午效率加速
+            </h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+                午休過後，人體生理時鐘容易產生疲倦感。此時最適合採用「番茄工作法」—— 專注 25 分鐘、休息 5 分鐘，並優先處理具有挑戰性的核心任務，能大幅降低拖延症發作。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 新增任務的 Modal 彈窗彈出層 -->
+<div class="task-form-overlay" id="task-form-overlay">
+    <div class="task-form-container">
+        <h3 class="task-form-title">
+            <i class="fa-solid fa-folder-plus" style="color: var(--afternoon-primary); margin-right: 0.5rem;"></i>
+            安排新工作任務
+        </h3>
+        
+        <form id="task-creation-form">
+            <!-- 任務名稱 -->
+            <div class="form-group">
+                <label for="task-title-input" class="form-label">任務標題 *</label>
+                <input type="text" id="task-title-input" class="form-input" placeholder="請輸入任務名稱 (例如: 部署專案至 AWS)" required>
+            </div>
+
+            <!-- 優先級別 -->
+            <div class="form-group">
+                <label for="task-priority-input" class="form-label">優先級別</label>
+                <select id="task-priority-input" class="form-select">
+                    <option value="high">🔥 高優先度 (High)</option>
+                    <option value="medium" selected>⚡ 中等優先度 (Medium)</option>
+                    <option value="low">☕ 低優先度 (Low)</option>
+                </select>
+            </div>
+
+            <!-- 任務描述 -->
+            <div class="form-group">
+                <label for="task-desc-input" class="form-label">詳細說明</label>
+                <textarea id="task-desc-input" class="form-textarea" placeholder="請輸入這項工作的具體步驟或注意事項..."></textarea>
+            </div>
+
+            <!-- 控制按鈕 -->
+            <div class="form-buttons">
+                <button type="button" class="btn-form btn-form-cancel" id="btn-task-cancel">取消</button>
+                <button type="submit" class="btn-form btn-form-submit" id="btn-task-submit">確認建立</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
