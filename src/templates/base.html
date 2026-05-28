@@ -36,6 +36,9 @@
                 <a href="/feature2" class="nav-item {% if request.path == '/feature2' %}active{% endif %}" id="nav-feature2">
                     <i class="fa-solid fa-briefcase"></i> Feature 2 (下午上班的公司)
                 </a>
+                <a href="/feature3" class="nav-item {% if request.path == '/feature3' %}active{% endif %}" id="nav-feature3">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Feature 3 (S3 檔案雲)
+                </a>
             </div>
             <div class="nav-time-widget" id="time-widget">
                 <i class="fa-solid fa-clock-three"></i>
@@ -50,8 +53,8 @@
         <div class="hero-container" id="home-hero-section">
             <header class="hero-header">
                 <span class="badge">AWS 雲端網頁開發課程練習</span>
-                <h1 class="hero-title" id="main-title">高效日誌式雙效能儀表板</h1>
-                <p class="hero-subtitle">整合早晨理財看股與午後職場工作看板，為您的一天注入極致生產力與流暢體驗。</p>
+                <h1 class="hero-title" id="main-title">高效日誌式多功能儀表板</h1>
+                <p class="hero-subtitle">整合早晨股市行情、午後專案看板與 S3 雲端檔案管理，為您打造極致流暢的 AWS 實踐體驗。</p>
             </header>
 
             <div class="portal-grid">
@@ -80,6 +83,20 @@
                     <p class="portal-desc">專注午後職場高效生產力！提供視覺化任務 Kanban 看板，可拖曳更新狀態，並整合番茄鐘工時計算器與工作日誌，讓下午的工作排程有條不紊。</p>
                     <a href="/feature2" class="portal-btn btn-afternoon">
                         <span>進入辦公模式</span> <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Portal 3: S3 檔案雲 -->
+                <div class="portal-card feature3-card" id="card-feature3">
+                    <div class="portal-card-glow"></div>
+                    <div class="portal-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <span class="portal-time-badge cloud-badge"><i class="fa-solid fa-shield-halved"></i> AWS S3 安全模式</span>
+                    <h2 class="portal-heading">Feature 3: S3 檔案雲</h2>
+                    <p class="portal-desc">安全無憑證雲端儲存中心！完全遵循 AWS 安全最佳實踐，不透露 any Access Key。支援 Drag & Drop 拖曳上傳、下載及雲端同步管理，無縫介接真實 `ckc101_28_2` Bucket。</p>
+                    <a href="/feature3" class="portal-btn btn-cloud">
+                        <span>進入檔案中心</span> <i class="fa-solid fa-arrow-right"></i>
                     </a>
                 </div>
             </div>

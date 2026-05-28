@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initFeature1Stocks();
     } else if (path === '/feature2') {
         initFeature2Tasks();
+    } else if (path === '/feature3') {
+        initFeature3Files();
     }
 });
 
@@ -568,4 +570,290 @@ function initFeature2Tasks() {
     // 啟動
     fetchTasks();
     setupDragAndDrop();
+}
+
+/* ==========================================================================
+   Feature 3: S3 檔案雲 (S3 Secure File Manager) 模組
+   ========================================================================== */
+function initFeature3Files() {
+    const dropzone = document.getElementById('upload-dropzone');
+    const fileInput = document.getElementById('file-input');
+    const progressContainer = document.getElementById('upload-progress-container');
+    const progressBar = document.getElementById('upload-progress-bar');
+    const progressPercent = document.getElementById('upload-percentage');
+    const progressFilename = document.getElementById('upload-filename');
+    
+    const filesListBody = document.getElementById('files-list-body');
+    const btnRefresh = document.getElementById('btn-refresh-files');
+
+    // 1. 偵測 S3 的 AWS 安全憑證狀態
+    async function checkS3Status() {
+        try {
+            const response = await fetch('/api/files/status');
+            const status = await response.json();
+
+            const envBadge = document.getElementById('s3-env-badge');
+            const secStatus = document.getElementById('sec-conn-status');
+            const secSource = document.getElementById('sec-credential-source');
+
+            if (status.s3_active) {
+                if (envBadge) {
+                    envBadge.className = 'portal-time-badge morning-badge';
+                    envBadge.innerHTML = '<i class="fa-solid fa-shield-halved"></i> 🔒 已安全連線 S3';
+                }
+                if (secStatus) {
+                    secStatus.className = 'sec-value badge-green';
+                    secStatus.textContent = '已啟用 S3 安全鏈';
+                }
+                if (secSource) {
+                    secSource.textContent = 'AWS IAM ECS Task Role';
+                }
+            } else {
+                if (envBadge) {
+                    envBadge.className = 'portal-time-badge afternoon-badge';
+                    envBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 💡 本機模擬模式';
+                }
+                if (secStatus) {
+                    secStatus.className = 'sec-value badge-yellow';
+                    secStatus.textContent = '本機安全模擬區';
+                }
+                if (secSource) {
+                    secSource.textContent = 'uploads_sandbox 資料夾';
+                }
+            }
+        } catch (error) {
+            console.error('無法讀取 S3 狀態資訊:', error);
+        }
+    }
+
+    // 2. 取得檔案清單
+    async function fetchFilesList() {
+        if (!filesListBody) return;
+        
+        // 顯示載入動畫
+        filesListBody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> 正在向雲端讀取檔案中...
+                </td>
+            </tr>
+        `;
+
+        try {
+            const response = await fetch('/api/files');
+            if (!response.ok) throw new Error('讀取檔案列表失敗');
+            const files = await response.json();
+
+            filesListBody.innerHTML = '';
+
+            if (files.length === 0) {
+                filesListBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            <i class="fa-solid fa-folder-open" style="font-size: 2rem; margin-bottom: 0.8rem; display: block; color: rgba(255,255,255,0.08);"></i>
+                            目前無已上傳的檔案，拖曳檔案即可上傳。
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            files.forEach(file => {
+                const tr = document.createElement('tr');
+                
+                // 決定檔案圖標
+                let fileIcon = 'fa-file';
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
+                    fileIcon = 'fa-file-image';
+                } else if (['pdf'].includes(ext)) {
+                    fileIcon = 'fa-file-pdf';
+                } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+                    fileIcon = 'fa-file-zipper';
+                } else if (['txt', 'md', 'json'].includes(ext)) {
+                    fileIcon = 'fa-file-lines';
+                } else if (['py', 'js', 'html', 'css', 'go', 'sh'].includes(ext)) {
+                    fileIcon = 'fa-file-code';
+                }
+
+                // 格式化檔案大小
+                let sizeStr = `${file.size} B`;
+                if (file.size > 1024 * 1024) {
+                    sizeStr = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+                } else if (file.size > 1024) {
+                    sizeStr = `${(file.size / 1024).toFixed(1)} KB`;
+                }
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="files-table-filename">
+                            <i class="fa-solid ${fileIcon} file-icon"></i>
+                            <span>${file.name}</span>
+                        </div>
+                    </td>
+                    <td style="font-family: monospace; font-size: 0.85rem;">${sizeStr}</td>
+                    <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">${file.last_modified}</td>
+                    <td style="text-align: right;">
+                        <button class="task-btn btn-file-download" data-filename="${file.name}" style="color: #2ecc71; margin-right: 0.8rem;" title="安全下載">
+                            <i class="fa-solid fa-circle-down"></i> 下載
+                        </button>
+                        <button class="task-btn task-btn-delete" data-filename="${file.name}" title="刪除檔案">
+                            <i class="fa-solid fa-trash"></i> 刪除
+                        </button>
+                    </td>
+                `;
+
+                // 綁定下載事件
+                tr.querySelector('.btn-file-download').addEventListener('click', () => downloadFile(file.name));
+                // 綁定刪除事件
+                tr.querySelector('.task-btn-delete').addEventListener('click', () => deleteFile(file.name));
+
+                filesListBody.appendChild(tr);
+            });
+        } catch (error) {
+            filesListBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--priority-high); padding: 3rem;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> 讀取失敗: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // 3. 檔案上傳 (使用 AJAX 追蹤進度條)
+    function uploadFile(file) {
+        if (!file) return;
+
+        if (progressContainer) progressContainer.style.display = 'block';
+        if (progressFilename) progressFilename.textContent = file.name;
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressPercent) progressPercent.textContent = '0%';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/files', true);
+
+        // 追蹤進度事件
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (progressPercent) progressPercent.textContent = `${percent}%`;
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status === 201) {
+                setTimeout(() => {
+                    if (progressContainer) progressContainer.style.display = 'none';
+                    fetchFilesList();
+                }, 800);
+            } else {
+                let errMsg = '上傳失敗';
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    errMsg = res.error || errMsg;
+                } catch(e) {}
+                alert(`❌ 檔案上傳失敗: ${errMsg}`);
+                if (progressContainer) progressContainer.style.display = 'none';
+            }
+        };
+
+        xhr.onerror = function() {
+            alert('❌ 檔案上傳發生網路錯誤！');
+            if (progressContainer) progressContainer.style.display = 'none';
+        };
+
+        xhr.send(formData);
+    }
+
+    // 4. 下載檔案 (安全 URL 機制)
+    async function downloadFile(filename) {
+        try {
+            const response = await fetch(`/api/files/download/${encodeURIComponent(filename)}`);
+            if (!response.ok) throw new Error('取得下載連結失敗');
+            const data = await response.json();
+
+            // 若為真實 S3 安全模式，將會收到 S3 Presigned URL，否則為本地 API 串流下載路由
+            // 使用新視窗或隱藏 a 標籤直接觸發瀏覽器下載
+            const downloadWindow = window.open(data.url, '_blank');
+            if (!downloadWindow) {
+                // 如果彈出視窗被阻擋，則用隱藏鏈接點擊
+                const link = document.createElement('a');
+                link.href = data.url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } catch (error) {
+            alert(`❌ 取得檔案失敗: ${error.message}`);
+        }
+    }
+
+    // 5. 刪除檔案
+    async function deleteFile(filename) {
+        if (!confirm(`確定要將檔案「${filename}」自 S3 儲存桶中刪除嗎？`)) return;
+
+        try {
+            const response = await fetch(`/api/files/${encodeURIComponent(filename)}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('刪除檔案失敗');
+            
+            fetchFilesList();
+        } catch (error) {
+            alert(`❌ 刪除失敗: ${error.message}`);
+        }
+    }
+
+    // 6. 拖曳檔案控制 (Drag and Drop)
+    if (dropzone) {
+        // 點擊 dropzone 開啟檔案選擇視窗
+        dropzone.addEventListener('click', (e) => {
+            // 防止與 browse-link 點擊事件衝突
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadFile(fileInput.files[0]);
+            }
+        });
+
+        // 拖曳進入
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        // 拖曳離開
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        // 釋放檔案
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                uploadFile(e.dataTransfer.files[0]);
+            }
+        });
+    }
+
+    // 7. 重新整理按鈕
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', fetchFilesList);
+    }
+
+    // 啟動載入
+    checkS3Status();
+    fetchFilesList();
 }

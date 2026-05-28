@@ -96,3 +96,57 @@ def test_modify_and_delete_task_api(client):
     # 3. 刪除後再次查詢，應該回傳 404
     get_del_res = client.put('/api/tasks/1', json=update_data)
     assert get_del_res.status_code == 404
+
+def test_feature3_page(client):
+    """驗證 Feature 3 (S3 檔案雲) 路由是否正常載入"""
+    response = client.get('/feature3')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'S3 安全儲存中心' in html
+    assert 'ckc101_28_2' in html
+
+def test_s3_status_api(client):
+    """驗證 S3 連線與運作狀態 API"""
+    response = client.get('/api/files/status')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 's3_active' in data
+    assert 's3_status' in data
+    assert data['bucket'] == 'ckc101_28_2'
+
+def test_files_upload_list_delete_api(client):
+    """驗證檔案上傳、取得清單、下載與刪除 API 的完整操作流程"""
+    import io
+    
+    # 建立一個測試用的虛擬檔案
+    test_filename = 'test_pytest_file.txt'
+    test_content = b'pytest mock content'
+    
+    # 1. 測試 POST 上傳檔案
+    post_res = client.post(
+        '/api/files',
+        data={'file': (io.BytesIO(test_content), test_filename)},
+        content_type='multipart/form-data'
+    )
+    assert post_res.status_code == 201
+    assert post_res.get_json()['success'] is True
+    assert post_res.get_json()['filename'] == test_filename
+
+    # 2. 測試 GET 取得檔案清單
+    list_res = client.get('/api/files')
+    assert list_res.status_code == 200
+    files = list_res.get_json()
+    assert len(files) > 0
+    # 確保上傳的檔案包含在清單中
+    assert any(f['name'] == test_filename for f in files)
+
+    # 3. 測試 GET 獲取安全下載連結
+    download_res = client.get(f'/api/files/download/{test_filename}')
+    assert download_res.status_code == 200
+    assert 'url' in download_res.get_json()
+
+    # 4. 測試 DELETE 刪除檔案
+    del_res = client.delete(f'/api/files/{test_filename}')
+    assert del_res.status_code == 200
+    assert del_res.get_json()['success'] is True
+
