@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initFeature2Tasks();
     } else if (path === '/feature3') {
         initFeature3Files();
+    } else if (path === '/feature4') {
+        initFeature4Stress();
     }
 });
 
@@ -856,4 +858,204 @@ function initFeature3Files() {
     // 啟動載入
     checkS3Status();
     fetchFilesList();
+}
+
+/* ==========================================================================
+   Feature 4: CPU 暴增練習 (CPU Stress Console) 模組
+   ========================================================================== */
+function initFeature4Stress() {
+    // DOM 元素繫結
+    const cpuStatusBadge = document.getElementById('cpu-status-badge');
+    const stressDial = document.getElementById('stress-dial');
+    const dialIcon = document.getElementById('dial-icon');
+    const dialPercentage = document.getElementById('dial-percentage');
+    const dialStatusText = document.getElementById('dial-status-text');
+    
+    const coresSlider = document.getElementById('cores-slider');
+    const coresValue = document.getElementById('cores-value');
+    const maxCoresLabel = document.getElementById('max-cores-label');
+    
+    const durationValue = document.getElementById('duration-value');
+    const durationInput = document.getElementById('duration-input');
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    
+    const btnStart = document.getElementById('btn-start-stress');
+    const btnStop = document.getElementById('btn-stop-stress');
+    
+    const statusTextIndicator = document.getElementById('status-text-indicator');
+    const timeElapsedIndicator = document.getElementById('time-elapsed-indicator');
+    const timeRemainingIndicator = document.getElementById('time-remaining-indicator');
+    
+    const secTotalCores = document.getElementById('sec-total-cores');
+    
+    let checkInterval = null;
+    let totalCores = 1;
+    let isStressing = false;
+
+    // 格式化時間 (秒 ➜ MM:SS)
+    function formatTime(seconds) {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        return `${mins}:${secs}`;
+    }
+
+    // 取得並渲染狀態
+    async function checkStatus() {
+        try {
+            const response = await fetch('/api/cpu/status');
+            if (!response.ok) throw new Error('無法取得狀態');
+            const data = await response.json();
+            
+            totalCores = data.total_cores;
+            isStressing = data.active;
+            
+            // 初始化滑桿上限與右側核心資訊
+            if (coresSlider) {
+                coresSlider.max = totalCores;
+                if (maxCoresLabel) maxCoresLabel.textContent = `1 ~ ${totalCores} 核`;
+            }
+            if (secTotalCores) {
+                secTotalCores.textContent = `${totalCores} Cores`;
+            }
+            
+            if (isStressing) {
+                // 1. 正在燒機中狀態
+                if (stressDial) stressDial.classList.add('active');
+                
+                // 動態起伏 CPU 指標數字 (模擬 92.5% ~ 99.8% 劇烈起伏)
+                const mockCpuVal = (92.0 + Math.random() * 7.8).toFixed(1);
+                if (dialPercentage) dialPercentage.textContent = `${mockCpuVal}%`;
+                if (dialStatusText) dialStatusText.textContent = 'STRESS ACTIVE';
+                
+                // 更新狀態指示器
+                if (statusTextIndicator) statusTextIndicator.innerHTML = `🔥 正在燒機中 (${data.cores_stressed}核)`;
+                if (timeElapsedIndicator) timeElapsedIndicator.textContent = formatTime(data.elapsed_time);
+                if (timeRemainingIndicator) timeRemainingIndicator.textContent = formatTime(data.remaining_time);
+                
+                if (cpuStatusBadge) {
+                    cpuStatusBadge.className = 'portal-time-badge morning-badge';
+                    cpuStatusBadge.innerHTML = `<i class="fa-solid fa-fire animate-pulse"></i> 正在燒機 (${data.cores_stressed}核)`;
+                }
+                
+                // 禁用設定控制項，啟用停止按鈕
+                if (btnStart) btnStart.disabled = true;
+                if (btnStop) btnStop.disabled = false;
+                if (coresSlider) coresSlider.disabled = true;
+                presetBtns.forEach(btn => btn.style.pointerEvents = 'none');
+            } else {
+                // 2. 閒置狀態
+                if (stressDial) stressDial.classList.remove('active');
+                
+                // 模擬 1.5% ~ 4.2% 的日常背景極低 CPU 波動
+                const mockCpuVal = (1.2 + Math.random() * 3.0).toFixed(1);
+                if (dialPercentage) dialPercentage.textContent = `${mockCpuVal}%`;
+                if (dialStatusText) dialStatusText.textContent = 'SYSTEM IDLE';
+                
+                // 更新狀態指示器
+                if (statusTextIndicator) statusTextIndicator.textContent = '⚪ 閒置中';
+                if (timeElapsedIndicator) timeElapsedIndicator.textContent = '00:00';
+                if (timeRemainingIndicator) timeRemainingIndicator.textContent = '00:00';
+                
+                if (cpuStatusBadge) {
+                    cpuStatusBadge.className = 'portal-time-badge cloud-badge';
+                    cpuStatusBadge.innerHTML = '<i class="fa-solid fa-shield-halved"></i> 系統閒置中';
+                }
+                
+                // 啟用設定控制項，挑戰停止按鈕
+                if (btnStart) btnStart.disabled = false;
+                if (btnStop) btnStop.disabled = true;
+                if (coresSlider) coresSlider.disabled = false;
+                presetBtns.forEach(btn => btn.style.pointerEvents = 'auto');
+            }
+        } catch (error) {
+            console.error('CPU 狀態查詢錯誤:', error);
+            if (cpuStatusBadge) {
+                cpuStatusBadge.className = 'portal-time-badge afternoon-badge';
+                cpuStatusBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 連線異常';
+            }
+        }
+    }
+
+    // 啟動燒機
+    async function startStress() {
+        const cores = parseInt(coresSlider ? coresSlider.value : 1);
+        const duration = parseInt(durationInput ? durationInput.value : 30);
+        
+        if (btnStart) btnStart.disabled = true;
+        
+        try {
+            const response = await fetch('/api/cpu/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cores, duration })
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || '啟動失敗');
+            }
+            
+            // 立即查詢狀態更新 UI
+            await checkStatus();
+        } catch (error) {
+            alert(`❌ 啟動燒機失敗: ${error.message}`);
+            if (btnStart) btnStart.disabled = false;
+        }
+    }
+
+    // 停止燒機
+    async function stopStress() {
+        if (btnStop) btnStop.disabled = true;
+        
+        try {
+            const response = await fetch('/api/cpu/stop', {
+                method: 'POST'
+            });
+            
+            if (!response.ok) throw new Error('停止失敗');
+            
+            // 立即查詢狀態更新 UI
+            await checkStatus();
+        } catch (error) {
+            alert(`❌ 終止燒機失敗: ${error.message}`);
+            if (btnStop) btnStop.disabled = false;
+        }
+    }
+
+    // 滑桿移動事件
+    if (coresSlider) {
+        coresSlider.addEventListener('input', () => {
+            if (coresValue) coresValue.textContent = `${coresSlider.value} Cores`;
+        });
+    }
+
+    // 時間 Preset 按鈕事件
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            presetBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const seconds = btn.getAttribute('data-seconds');
+            if (durationInput) durationInput.value = seconds;
+            
+            let valText = `${seconds} 秒`;
+            if (seconds >= 60) {
+                valText = `${seconds / 60} 分鐘`;
+            }
+            if (durationValue) durationValue.textContent = valText;
+        });
+    });
+
+    // 啟動與停止按鈕事件繫結
+    if (btnStart) btnStart.addEventListener('click', startStress);
+    if (btnStop) btnStop.addEventListener('click', stopStress);
+
+    // 啟動輪詢與初始化
+    checkStatus();
+    checkInterval = setInterval(checkStatus, 1000);
+    
+    // 確保頁面離開時清理 Interval
+    window.addEventListener('beforeunload', () => {
+        if (checkInterval) clearInterval(checkInterval);
+    });
 }
