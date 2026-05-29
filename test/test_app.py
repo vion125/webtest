@@ -150,3 +150,49 @@ def test_files_upload_list_delete_api(client):
     assert del_res.status_code == 200
     assert del_res.get_json()['success'] is True
 
+
+def test_feature4_page(client):
+    """驗證 Feature 4 (CPU 暴增練習) 路由是否正常載入"""
+    response = client.get('/feature4')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'CPU 壓力燒機控制台' in html
+    assert 'AWS CPU 監控指南' in html
+
+
+def test_cpu_status_api(client):
+    """驗證 CPU 狀態 API 行為"""
+    response = client.get('/api/cpu/status')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'active' in data
+    assert 'total_cores' in data
+    assert data['active'] is False
+
+
+def test_cpu_stress_start_and_stop_api(client):
+    """驗證啟動與停止 CPU 壓力 API 的整合流程"""
+    # 1. 啟動壓力測試 (1核心，30秒)
+    start_res = client.post('/api/cpu/start', json={'cores': 1, 'duration': 30})
+    assert start_res.status_code == 200
+    start_data = start_res.get_json()
+    assert start_data['success'] is True
+    assert start_data['cores_stressed'] == 1
+    assert start_data['duration'] == 30
+
+    # 2. 驗證當前狀態為 active
+    status_res = client.get('/api/cpu/status')
+    assert status_res.status_code == 200
+    status_data = status_res.get_json()
+    assert status_data['active'] is True
+    assert status_data['cores_stressed'] == 1
+
+    # 3. 停止壓力測試
+    stop_res = client.post('/api/cpu/stop')
+    assert stop_res.status_code == 200
+    assert stop_res.get_json()['success'] is True
+
+    # 4. 再次驗證狀態為 inactive
+    status_res2 = client.get('/api/cpu/status')
+    assert status_res2.get_json()['active'] is False
+

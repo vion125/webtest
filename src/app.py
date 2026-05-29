@@ -3,6 +3,10 @@ import random
 import os
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
+import sys
+import subprocess
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -347,4 +351,146 @@ def local_download_file(filename):
         return send_from_directory(LOCAL_UPLOAD_FOLDER, filename, as_attachment=True)
     except Exception as e:
         return jsonify({'error': f'本機檔案下載失敗: {str(e)}'}), 404
+
+# ==========================================================================
+# Feature 4: CPU 暴增 (燒機) 練習 (監控 AWS CPU 練習)
+# ==========================================================================
+
+# --- Feature 4: CPU 壓力管理器 ---
+stress_lock = threading.Lock()
+stress_processes = []
+stress_expiry_time = 0
+stress_duration_setting = 0
+stress_cores_setting = 0
+
+def auto_stop_monitor():
+    """背景執行緒：定時檢查燒機是否超時，若超時則強制終止"""
+    global stress_processes, stress_expiry_time, stress_duration_setting, stress_cores_setting
+    while True:
+        time.sleep(1)
+        with stress_lock:
+            if stress_processes and time.time() > stress_expiry_time:
+                print("⏰ [CPU Stress] 燒機時間到，自動停止所有子進程...")
+                for p in stress_processes:
+                    try:
+                        p.terminate()
+                        p.kill()
+                    except Exception as e:
+                        print(f"❌ 終止子進程失敗: {e}")
+                stress_processes.clear()
+                stress_expiry_time = 0
+
+# 啟動背景監控執行緒
+monitor_thread = threading.Thread(target=auto_stop_monitor, daemon=True)
+monitor_thread.start()
+
+@app.route('/feature4')
+def feature4():
+    """CPU 暴增功能頁面"""
+    return render_template('feature4.html')
+
+@app.route('/api/cpu/status', methods=['GET'])
+def get_cpu_status():
+    """取得目前 CPU 燒機狀態"""
+    with stress_lock:
+        is_active = len(stress_processes) > 0
+        remaining_time = 0
+        elapsed_time = 0
+        if is_active and stress_expiry_time > 0:
+            remaining_time = max(0, int(stress_expiry_time - time.time()))
+            elapsed_time = max(0, int(stress_duration_setting - remaining_time))
+        
+        return jsonify({
+            'active': is_active,
+            'cores_stressed': stress_cores_setting if is_active else 0,
+            'total_cores': os.cpu_count() or 1,
+            'duration': stress_duration_setting,
+            'remaining_time': remaining_time,
+            'elapsed_time': elapsed_time
+        })
+
+@app.route('/api/cpu/start', methods=['POST'])
+def start_cpu_stress():
+    """啟動 CPU 壓力測試"""
+    global stress_processes, stress_expiry_time, stress_duration_setting, stress_cores_setting
+    
+    data = request.json or {}
+    cores = int(data.get('cores', 1))
+    duration = int(data.get('duration', 60)) # 預設 60 秒
+    
+    # 限制核心數不超過系統核心數 + 2 (防呆)
+    system_cores = os.cpu_count() or 1
+    if cores < 1:
+        cores = 1
+    elif cores > system_cores + 2:
+        cores = system_cores
+        
+    # 限制持續時間在 10 秒到 10 分鐘 (600秒) 之間，防止無限燒機
+    if duration < 10:
+        duration = 10
+    elif duration > 600:
+        duration = 600
+        
+    with stress_lock:
+        # 如果已經在燒機，先停止舊的進程
+        if stress_processes:
+            for p in stress_processes:
+                try:
+                    p.terminate()
+                    p.kill()
+                except Exception:
+                    pass
+            stress_processes.clear()
+            
+        print(f"🔥 啟動 CPU 壓力測試：核心數 = {cores}, 持續時間 = {duration} 秒")
+        
+        # 啟動子進程吃滿 CPU 核心
+        # 使用 sys.executable 以確保呼叫同一個 Python 直譯器
+        # 核心指令為 "while True: pass" 的無窮迴圈
+        try:
+            for _ in range(cores):
+                p = subprocess.Popen([sys.executable, "-c", "while True: pass"])
+                stress_processes.append(p)
+                
+            stress_cores_setting = cores
+            stress_duration_setting = duration
+            stress_expiry_time = time.time() + duration
+            
+            return jsonify({
+                'success': True,
+                'message': f'已成功啟動 {cores} 核心 CPU 燒機，預計執行 {duration} 秒。',
+                'cores_stressed': cores,
+                'duration': duration
+            }), 200
+        except Exception as e:
+            # 發生異常時進行清理
+            for p in stress_processes:
+                try:
+                    p.terminate()
+                    p.kill()
+                except Exception:
+                    pass
+            stress_processes.clear()
+            stress_expiry_time = 0
+            return jsonify({'error': f'啟動燒機失敗: {str(e)}'}), 500
+
+@app.route('/api/cpu/stop', methods=['POST'])
+def stop_cpu_stress():
+    """手動終止 CPU 壓力測試"""
+    global stress_processes, stress_expiry_time
+    with stress_lock:
+        if not stress_processes:
+            return jsonify({'success': True, 'message': '當前並未執行任何燒機任務。'})
+            
+        print("🛑 收到手動終止指令，正在釋放 CPU 進程...")
+        for p in stress_processes:
+            try:
+                p.terminate()
+                p.kill()
+            except Exception:
+                pass
+        stress_processes.clear()
+        stress_expiry_time = 0
+        
+        return jsonify({'success': True, 'message': '已成功終止所有燒機子進程，CPU 負載已釋放。'})
 

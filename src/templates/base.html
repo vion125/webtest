@@ -39,6 +39,9 @@
                 <a href="/feature3" class="nav-item {% if request.path == '/feature3' %}active{% endif %}" id="nav-feature3">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Feature 3 (S3 檔案雲)
                 </a>
+                <a href="/feature4" class="nav-item {% if request.path == '/feature4' %}active{% endif %}" id="nav-feature4">
+                    <i class="fa-solid fa-fire"></i> Feature 4 (暴增 CPU 練習)
+                </a>
             </div>
             <div class="nav-time-widget" id="time-widget">
                 <i class="fa-solid fa-clock-three"></i>
@@ -97,6 +100,20 @@
                     <p class="portal-desc">安全無憑證雲端儲存中心！完全遵循 AWS 安全最佳實踐，不透露 any Access Key。支援 Drag & Drop 拖曳上傳、下載及雲端同步管理，無縫介接真實 `ckc101_28_2` Bucket。</p>
                     <a href="/feature3" class="portal-btn btn-cloud">
                         <span>進入檔案中心</span> <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Portal 4: CPU 暴增練習 -->
+                <div class="portal-card feature4-card" id="card-feature4">
+                    <div class="portal-card-glow"></div>
+                    <div class="portal-icon">
+                        <i class="fa-solid fa-fire text-stress"></i>
+                    </div>
+                    <span class="portal-time-badge stress-badge"><i class="fa-solid fa-gauge-high"></i> AWS CPU 監控練習</span>
+                    <h2 class="portal-heading">Feature 4: CPU 暴增練習</h2>
+                    <p class="portal-desc">實戰 AWS CPU 監控！一鍵啟動後台 CPU 壓力測試子進程，吃滿系統核心，製造真實 CPU 暴增（燒機）情境。配合超時安全防護，讓您無壓力練習 CloudWatch 指標監控與告警設定。</p>
+                    <a href="/feature4" class="portal-btn btn-stress">
+                        <span>開啟燒機控制台</span> <i class="fa-solid fa-arrow-right"></i>
                     </a>
                 </div>
             </div>

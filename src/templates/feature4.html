@@ -1,0 +1,626 @@
+{% extends "base.html" %}
+
+{% block title %}Feature 4: CPU 暴增練習控制台 - AWS Flask 課程練習{% endblock %}
+
+{% block content %}
+<div class="company-layout" id="cpu-stress-layout">
+    <!-- 左側大盤：CPU 燒機控制中心 -->
+    <div class="dashboard-panel" id="cpu-main-panel">
+        <header class="panel-header">
+            <h2 class="panel-title">
+                <i class="fa-solid fa-fire text-stress"></i>
+                AWS CPU 壓力燒機控制台
+            </h2>
+            <span class="portal-time-badge stress-badge" id="cpu-status-badge">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> 檢測狀態中...
+            </span>
+        </header>
+
+        <!-- CPU 燒機大型儀表板 -->
+        <div class="stress-dashboard">
+            <div class="dial-wrapper">
+                <div class="stress-dial" id="stress-dial">
+                    <!-- 流光旋轉環 -->
+                    <div class="dial-sweep"></div>
+                    <div class="dial-inner">
+                        <div class="dial-icon-container">
+                            <i class="fa-solid fa-gauge-high" id="dial-icon"></i>
+                        </div>
+                        <div class="dial-value" id="dial-percentage">0%</div>
+                        <div class="dial-status" id="dial-status-text">SYSTEM IDLE</div>
+                    </div>
+                </div>
+                <!-- 底部火焰動態特效 -->
+                <div class="flame-container" id="flame-container">
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                </div>
+            </div>
+
+            <!-- 控制滑桿與設定區 -->
+            <div class="stress-control-card">
+                <div class="control-row">
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span><i class="fa-solid fa-microchip"></i> 壓力強度 (壓榨核心數)</span>
+                            <span class="badge-value" id="cores-value">1 Cores</span>
+                        </label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="cores-slider" min="1" max="4" value="1" class="neon-slider">
+                            <div class="slider-labels">
+                                <span>1 核</span>
+                                <span id="max-cores-label">系統偵測中</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span><i class="fa-solid fa-hourglass-half"></i> 燒機持續時間</span>
+                            <span class="badge-value" id="duration-value">60 秒</span>
+                        </label>
+                        <div class="time-presets">
+                            <button class="preset-btn active" data-seconds="30">30 秒</button>
+                            <button class="preset-btn" data-seconds="60">1 分鐘</button>
+                            <button class="preset-btn" data-seconds="180">3 分鐘</button>
+                            <button class="preset-btn" data-seconds="300">5 分鐘</button>
+                        </div>
+                        <input type="hidden" id="duration-input" value="30">
+                    </div>
+                </div>
+
+                <div class="control-actions">
+                    <button class="btn-stress-action btn-stress-start" id="btn-start-stress">
+                        <i class="fa-solid fa-circle-play"></i> 開始暴增 CPU (極速燒機)
+                    </button>
+                    <button class="btn-stress-action btn-stress-stop" id="btn-stop-stress" disabled>
+                        <i class="fa-solid fa-circle-stop"></i> 停止暴增 (完全釋放)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 倒數計時與即時狀態列 -->
+        <div class="status-summary-grid">
+            <div class="summary-status-card">
+                <div class="card-metric-title">當前狀態</div>
+                <div class="card-metric-value" id="status-text-indicator">⚪ 閒置中</div>
+            </div>
+            <div class="summary-status-card">
+                <div class="card-metric-title">已燒機時間</div>
+                <div class="card-metric-value" id="time-elapsed-indicator">00:00</div>
+            </div>
+            <div class="summary-status-card">
+                <div class="card-metric-title">剩餘安全時間</div>
+                <div class="card-metric-value font-red" id="time-remaining-indicator">00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側側邊欄：AWS 監控與告警指南 -->
+    <div class="office-tracker" id="cpu-sidebar-panel">
+        <!-- AWS CloudWatch 監控指引 -->
+        <div class="tracker-card">
+            <h3 class="tracker-title">
+                <i class="fa-solid fa-chart-line" style="color: var(--stress-primary);"></i>
+                AWS CPU 監控指南
+            </h3>
+            <div class="security-status-card" style="border-color: rgba(255, 51, 51, 0.15);">
+                <div class="security-row">
+                    <span class="sec-label">系統總核心:</span>
+                    <span class="sec-value badge-green" id="sec-total-cores">-- Cores</span>
+                </div>
+                <div class="security-row">
+                    <span class="sec-label">監控指標:</span>
+                    <span class="sec-value" style="font-family: monospace; font-weight: bold; color: var(--stress-primary);">CPUUtilization</span>
+                </div>
+                <div class="security-row">
+                    <span class="sec-label">統計週期:</span>
+                    <span class="sec-value" style="color: var(--text-primary);">建議 1 分鐘 (Period)</span>
+                </div>
+            </div>
+            
+            <div class="step-guide-box">
+                <h4 class="guide-subheading"><i class="fa-brands fa-aws"></i> 實戰演練 3 步驟</h4>
+                <ol class="guide-list">
+                    <li>
+                        <strong>部署並觸發</strong>
+                        <p>將此應用部署至 AWS EC2 或 ECS，在網頁端將核心拉滿並啟動燒機，使其持續 3-5 分鐘。</p>
+                    </li>
+                    <li>
+                        <strong>前往 CloudWatch 查看</strong>
+                        <p>進入 AWS Console ➜ 搜尋 <strong>CloudWatch</strong> ➜ 點擊 <strong>Metrics</strong> ➜ <strong>All metrics</strong> ➜ <strong>EC2</strong> ➜ <strong>Per-Instance Metrics</strong>，勾選您的執行個體並尋找 <code>CPUUtilization</code> 指標。</p>
+                    </li>
+                    <li>
+                        <strong>建立 Alarm 告警練習</strong>
+                        <p>點擊指標旁的鐘頭圖示 ➜ 設定臨界值（例如 <code>&gt; 70%</code>）➜ 設定當達到臨界值時，透過 <strong>Amazon SNS</strong> 發送電子郵件或簡訊通知您，完成自動化告警閉環！</p>
+                    </li>
+                </ol>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; margin-top: 1rem; border-top: 1px solid var(--card-border); padding-top: 0.8rem;">
+                ⚠️ <strong>安全提示：</strong>本系統內建「雙重安全釋放鎖」。除了隨時可點擊「停止暴增」釋放外，若您意外關閉網頁或斷線，背景執行緒只要偵測到時間耗盡，也會<strong>強制 Kill</strong> 燒機進程，讓您在 AWS 實戰時絕不會因為意外超時而造成高額帳單。
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ==========================================================================
+   Feature 4: CPU 壓力測試專屬樣式 (極致流光、高熱橙紅)
+   ========================================================================== */
+
+:root {
+    --stress-primary: #ff3c30;
+    --stress-secondary: #ff9500;
+    --stress-shadow: rgba(255, 60, 48, 0.45);
+}
+
+.text-stress {
+    color: var(--stress-primary) !important;
+}
+
+.stress-badge {
+    background: rgba(255, 60, 48, 0.12);
+    color: var(--stress-primary);
+    border: 1px solid rgba(255, 60, 48, 0.25);
+}
+
+/* 燒機大型儀表板 */
+.stress-dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 2.5rem;
+    align-items: center;
+    margin: 2rem 0;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+@media (max-width: 900px) {
+    .stress-dashboard {
+        grid-template-columns: 1fr;
+        padding: 1.5rem;
+    }
+}
+
+/* 旋轉 Dial 儀表 */
+.dial-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 2rem 0;
+}
+
+.stress-dial {
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #121620 40%, #0d1017 100%);
+    border: 3px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    transition: var(--transition-smooth);
+}
+
+/* 旋轉光環 */
+.dial-sweep {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--stress-primary), var(--stress-secondary), transparent 60%);
+    z-index: 0;
+    opacity: 0;
+    transition: var(--transition-smooth);
+}
+
+.stress-dial.active {
+    box-shadow: 0 0 40px var(--stress-shadow);
+    border-color: rgba(255, 60, 48, 0.3);
+}
+
+.stress-dial.active .dial-sweep {
+    opacity: 1;
+    animation: rotate-sweep 1.8s linear infinite;
+}
+
+@keyframes rotate-sweep {
+    100% { transform: rotate(360deg); }
+}
+
+.dial-inner {
+    width: 216px;
+    height: 216px;
+    border-radius: 50%;
+    background: #0c0f16;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+}
+
+.dial-icon-container {
+    font-size: 2rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    transition: var(--transition-smooth);
+}
+
+.stress-dial.active .dial-icon-container {
+    color: var(--stress-primary);
+    animation: wiggle-icon 0.15s infinite alternate;
+}
+
+@keyframes wiggle-icon {
+    0% { transform: rotate(-5deg); }
+    100% { transform: rotate(5deg); }
+}
+
+.dial-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--text-primary);
+    transition: var(--transition-smooth);
+}
+
+.stress-dial.active .dial-value {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 60, 48, 0.6);
+}
+
+.dial-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 0.6rem;
+    transition: var(--transition-smooth);
+}
+
+.stress-dial.active .dial-status {
+    color: var(--stress-primary);
+    text-shadow: 0 0 8px rgba(255, 60, 48, 0.3);
+}
+
+/* 控制設定區 */
+.stress-control-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+    width: 100%;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.control-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.control-label i {
+    color: var(--stress-primary);
+    margin-right: 0.4rem;
+}
+
+.badge-value {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-family: 'Outfit', monospace;
+    font-size: 0.85rem;
+    color: var(--stress-secondary);
+}
+
+/* 滑桿美化 */
+.slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.neon-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.06);
+    outline: none;
+    transition: background 450ms ease-in;
+}
+
+.neon-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.neon-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--stress-primary);
+    box-shadow: 0 0 10px var(--stress-primary);
+    cursor: pointer;
+    margin-top: -6px;
+    transition: var(--transition-smooth);
+}
+
+.neon-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px var(--stress-primary), 0 0 25px var(--stress-primary);
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* 時間快速按鈕 */
+.time-presets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+}
+
+.preset-btn {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+    padding: 0.6rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.preset-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,0.15);
+}
+
+.preset-btn.active {
+    background: rgba(255, 60, 48, 0.1);
+    color: var(--stress-primary);
+    border-color: var(--stress-primary);
+    box-shadow: 0 0 10px rgba(255, 60, 48, 0.15);
+}
+
+/* 按鈕動作 */
+.control-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.btn-stress-action {
+    flex: 1;
+    border: none;
+    padding: 0.9rem;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.btn-stress-start {
+    background: linear-gradient(135deg, var(--stress-primary), #ff6b4a);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(255, 60, 48, 0.35);
+}
+
+.btn-stress-start:hover:not(:disabled) {
+    box-shadow: 0 8px 25px rgba(255, 60, 48, 0.55);
+    transform: scale(1.02);
+}
+
+.btn-stress-start:disabled {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.btn-stress-stop {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+}
+
+.btn-stress-stop:hover:not(:disabled) {
+    background: rgba(255, 60, 48, 0.08);
+    color: var(--stress-primary);
+    border-color: var(--stress-primary);
+}
+
+.btn-stress-stop:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* 狀態卡片區 */
+.status-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    margin-top: 1.5rem;
+}
+
+.summary-status-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 1.2rem;
+    text-align: center;
+}
+
+.card-metric-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.4rem;
+}
+
+.card-metric-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.font-red {
+    color: var(--stress-primary);
+}
+
+/* 右側引導小工具 */
+.step-guide-box {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.guide-subheading {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--stress-secondary);
+}
+
+.guide-list {
+    list-style: none;
+    padding-left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.guide-list li {
+    position: relative;
+    padding-left: 1.8rem;
+    font-size: 0.85rem;
+}
+
+.guide-list li::before {
+    content: '';
+    position: absolute;
+    left: 0.2rem;
+    top: 0.2rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--stress-primary);
+    box-shadow: 0 0 6px var(--stress-primary);
+}
+
+.guide-list li strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.guide-list li p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 火焰特效 CSS 動畫 */
+.flame-container {
+    width: 140px;
+    height: 40px;
+    position: absolute;
+    bottom: -15px;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    opacity: 0;
+    transition: var(--transition-smooth);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.stress-dial.active + .flame-container {
+    opacity: 0.85;
+}
+
+.flame {
+    width: 16px;
+    height: 16px;
+    background: var(--stress-primary);
+    border-radius: 0 100% 100% 100%;
+    transform: rotate(-135deg);
+    animation: pulse-flame 0.5s infinite alternate;
+    filter: blur(1px);
+    box-shadow: 0 0 10px var(--stress-primary), 0 0 20px var(--stress-secondary);
+}
+
+.flame:nth-child(even) {
+    background: var(--stress-secondary);
+    animation-delay: 0.15s;
+    height: 20px;
+    width: 20px;
+}
+
+.flame:nth-child(3) {
+    animation-delay: 0.05s;
+    height: 14px;
+    width: 14px;
+}
+
+.flame:nth-child(4) {
+    animation-delay: 0.25s;
+    height: 18px;
+    width: 18px;
+}
+
+@keyframes pulse-flame {
+    0% { transform: rotate(-135deg) scale(0.9); opacity: 0.8; }
+    100% { transform: rotate(-135deg) scale(1.2) translateY(-5px); opacity: 1; }
+}
+</style>
+{% endblock %}
