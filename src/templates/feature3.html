@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Feature 3: S3 檔案雲儲存 - AWS Flask 課程練習{% endblock %}
+
+{% block content %}
+<div class="company-layout" id="s3-cloud-layout">
+    <!-- 左側大盤：檔案拖曳上傳與列表區 -->
+    <div class="dashboard-panel" id="files-main-panel">
+        <header class="panel-header">
+            <h2 class="panel-title">
+                <i class="fa-solid fa-cloud-arrow-up afternoon-color"></i>
+                AWS S3 安全儲存中心 (Bucket: ckc101_28_2)
+            </h2>
+            <span class="portal-time-badge cloud-badge" id="s3-env-badge">
+                <i class="fa-solid fa-circle-nodes"></i> 檢測環境中...
+            </span>
+        </header>
+
+        <!-- 拖曳式上傳區域 -->
+        <div class="upload-dropzone" id="upload-dropzone">
+            <div class="dropzone-content">
+                <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                <h3>拖曳檔案至此區域，或 <span class="browse-link">瀏覽檔案</span></h3>
+                <p>支援任意檔案格式，檔案將安全上傳至 S3 儲存桶中</p>
+                <input type="file" id="file-input" style="display: none;" multiple>
+            </div>
+            
+            <!-- 上傳進度指示器 -->
+            <div class="upload-progress-container" id="upload-progress-container" style="display: none;">
+                <div class="upload-progress-bar-wrapper">
+                    <div class="upload-progress-bar" id="upload-progress-bar"></div>
+                </div>
+                <div class="upload-progress-text">
+                    <span id="upload-filename">--</span>
+                    <span id="upload-percentage">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 檔案清單表格區 -->
+        <div style="margin-top: 2rem;">
+            <div class="watchlist-title" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-list-check" style="color: var(--afternoon-primary); margin-right: 0.5rem;"></i>已儲存檔案清單</span>
+                <button class="task-btn" id="btn-refresh-files" title="重新整理清單" style="font-size: 0.95rem;">
+                    <i class="fa-solid fa-arrows-rotate"></i> 重新整理
+                </button>
+            </div>
+
+            <!-- 檔案列表表格 -->
+            <div class="files-table-container">
+                <table class="files-table">
+                    <thead>
+                        <tr>
+                            <th>檔案名稱</th>
+                            <th>檔案大小</th>
+                            <th>上次修改時間</th>
+                            <th style="text-align: right; padding-right: 1.5rem;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="files-list-body">
+                        <!-- 檔案清單由 JS 動態載入 -->
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> 正在向雲端讀取檔案中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側側邊欄：S3 安全模式機制詳解 -->
+    <div class="office-tracker" id="files-sidebar-panel">
+        <!-- 雲端連線狀態細節 -->
+        <div class="tracker-card">
+            <h3 class="tracker-title">
+                <i class="fa-solid fa-shield-halved" style="color: #2ecc71;"></i>
+                無憑證安全機制
+            </h3>
+            <div class="security-status-card">
+                <div class="security-row">
+                    <span class="sec-label">連線狀態:</span>
+                    <span class="sec-value badge-green" id="sec-conn-status">--</span>
+                </div>
+                <div class="security-row">
+                    <span class="sec-label">憑證來源:</span>
+                    <span class="sec-value" id="sec-credential-source" style="font-family: monospace; font-size: 0.8rem;">--</span>
+                </div>
+                <div class="security-row">
+                    <span class="sec-label">S3 儲存桶:</span>
+                    <span class="sec-value" style="font-family: monospace; font-weight: bold; color: var(--afternoon-primary);">ckc101_28_2</span>
+                </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; margin-top: 1rem; border-top: 1px solid var(--card-border); padding-top: 0.8rem;">
+                💡 <strong>安全提示：</strong>本系統完全遵循 AWS 雲端權限最佳實踐，在任何程式碼、環境變數或組態檔中，皆<strong>無硬編碼</strong> AWS 存取金鑰。本機開發時透過 local credentials 自動模擬，當部署至 AWS ECS 容器時，會自動透過 ECS Task Role 進行零憑證安全鏈介接。
+            </p>
+        </div>
+
+        <!-- AWS 練習小幫手 -->
+        <div class="tracker-card" style="background: linear-gradient(135deg, rgba(130, 87, 229, 0.05), rgba(255,255,255,0.02));">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--afternoon-primary);">
+                <i class="fa-solid fa-circle-question"></i> 如何部署至真實 S3？
+            </h4>
+            <ol style="font-size: 0.8rem; color: var(--text-secondary); padding-left: 1.2rem; line-height: 1.7; display: flex; flex-direction: column; gap: 0.5rem;">
+                <li>在 AWS 上建立名為 <strong>ckc101_28_2</strong> 的 S3 Bucket。</li>
+                <li>建立一個 IAM Role，授予 S3 Bucket 的讀寫權限（例如 <code>s3:PutObject</code>、<code>s3:GetObject</code>、<code>s3:DeleteObject</code>、<code>s3:ListBucket</code>）。</li>
+                <li>將此 Role 綁定至您的 EC2 執行個體或 ECS 任務定義中。</li>
+                <li>本程式容器啟動後，將會自動載入 Role 憑證，無縫介接真實 S3 Bucket！</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Feature 3 特有精美樣式定義 */
+.upload-dropzone {
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-dropzone:hover, .upload-dropzone.dragover {
+    background: rgba(130, 87, 229, 0.05);
+    border-color: var(--afternoon-primary);
+}
+
+.dropzone-icon {
+    font-size: 2.8rem;
+    color: var(--afternoon-primary);
+    margin-bottom: 1.2rem;
+    animation: bounce-icon 3s infinite alternate;
+}
+
+@keyframes bounce-icon {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-8px); }
+}
+
+.browse-link {
+    color: var(--afternoon-primary);
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+/* 進度條樣式 */
+.upload-progress-container {
+    margin-top: 1.5rem;
+    width: 100%;
+}
+
+.upload-progress-bar-wrapper {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.upload-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--afternoon-primary), var(--afternoon-secondary));
+    border-radius: 10px;
+    transition: width 0.1s ease;
+}
+
+.upload-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* 檔案列表表格 */
+.files-table-container {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.files-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.files-table th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.files-table td {
+    padding: 1.1rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+.files-table tr:last-child td {
+    border-bottom: none;
+}
+
+.files-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.files-table-filename {
+    font-weight: 500;
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.file-icon {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+/* 憑證卡片 */
+.security-status-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.security-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+}
+
+.sec-label {
+    color: var(--text-secondary);
+}
+
+.sec-value {
+    font-weight: 500;
+}
+
+.badge-green {
+    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.12);
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.badge-yellow {
+    color: var(--priority-medium);
+    background: rgba(255, 184, 108, 0.12);
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 184, 108, 0.2);
+}
+</style>
+{% endblock %}

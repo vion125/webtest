@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Upload Sandbox (本機暫存檔案防寫入映像檔)
+uploads_sandbox/
+
+# Version Control
+.git/
+.gitignore
+.github/
+
+# IDE / Configs
+.idea/
+.vscode/
+*.log

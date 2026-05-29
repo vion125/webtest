@@ -221,11 +221,11 @@ body {
     font-weight: 400;
 }
 
-/* Portal 雙卡片區塊 */
+/* Portal 多卡片區塊 */
 .portal-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
     width: 100%;
 }
 
@@ -273,6 +273,20 @@ body {
 
 .feature2-card:hover .portal-card-glow {
     background: radial-gradient(circle at top right, var(--afternoon-primary), transparent 60%);
+}
+
+.feature3-card:hover .portal-card-glow {
+    background: radial-gradient(circle at top right, #2ecc71, transparent 60%);
+}
+
+.feature3-card .portal-icon i {
+    color: #2ecc71;
+}
+
+.cloud-badge {
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.25);
 }
 
 .portal-icon {
@@ -364,6 +378,17 @@ body {
 
 .btn-afternoon:hover {
     box-shadow: 0 8px 25px rgba(130, 87, 229, 0.5);
+    transform: scale(1.02);
+}
+
+.btn-cloud {
+    background: linear-gradient(135deg, #2ecc71, #1abc9c);
+    color: #101216;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.btn-cloud:hover {
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.5);
     transform: scale(1.02);
 }
 
